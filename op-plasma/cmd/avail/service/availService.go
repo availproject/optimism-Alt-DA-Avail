@@ -36,7 +36,7 @@ func NewAvailService(apiURL string, seed string, appID int, timeout time.Duratio
 
 func (s *AvailService) Get(ctx context.Context, comm []byte) ([]byte, error) {
 	avail_blk_ref := types.AvailBlockRef{}
-	err := avail_blk_ref.UnmarshalFromBinary(comm[1:])
+	err := avail_blk_ref.UnmarshalFromBinary(comm)
 	if err != nil {
 		return []byte{}, fmt.Errorf("failed to unmarshal the ethereum tx data to avail block reference, error: %v", err)
 	}
