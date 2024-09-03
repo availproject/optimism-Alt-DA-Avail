@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.15;
 
-import { GnosisSafe as Safe } from "safe-contracts/GnosisSafe.sol";
-import { Guard as BaseGuard } from "safe-contracts/base/GuardManager.sol";
+import { Safe } from "safe-contracts/Safe.sol";
+import { BaseGuard, GuardManager } from "safe-contracts/base/GuardManager.sol";
+import { ModuleManager } from "safe-contracts/base/ModuleManager.sol";
 import { SafeSigners } from "src/Safe/SafeSigners.sol";
 import { Enum } from "safe-contracts/common/Enum.sol";
 import { ISemver } from "src/universal/ISemver.sol";

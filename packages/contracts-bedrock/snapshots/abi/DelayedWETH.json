@@ -12,10 +12,6 @@
   },
   {
     "stateMutability": "payable",
-    "type": "fallback"
-  },
-  {
-    "stateMutability": "payable",
     "type": "receive"
   },
   {

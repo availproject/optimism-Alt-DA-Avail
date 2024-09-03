@@ -11,8 +11,8 @@ import { L2OutputOracle } from "src/L1/L2OutputOracle.sol";
 import { PreimageOracle } from "src/cannon/PreimageOracle.sol";
 import { PreimageKeyLib } from "src/cannon/PreimageKeyLib.sol";
 
-import "src/dispute/lib/Types.sol";
-import "src/dispute/lib/Errors.sol";
+import "src/libraries/DisputeTypes.sol";
+import "src/libraries/DisputeErrors.sol";
 import { Types } from "src/libraries/Types.sol";
 import { LibClock } from "src/dispute/lib/LibUDT.sol";
 import { LibPosition } from "src/dispute/lib/LibPosition.sol";
@@ -57,8 +57,7 @@ contract PermissionedDisputeGame_Init is DisputeGameFactory_Init {
             _absolutePrestate: absolutePrestate,
             _maxGameDepth: 2 ** 3,
             _splitDepth: 2 ** 2,
-            _clockExtension: Duration.wrap(3 hours),
-            _maxClockDuration: Duration.wrap(3.5 days),
+            _gameDuration: Duration.wrap(7 days),
             _vm: _vm,
             _weth: _weth,
             _anchorStateRegistry: anchorStateRegistry,
@@ -74,13 +73,11 @@ contract PermissionedDisputeGame_Init is DisputeGameFactory_Init {
             PermissionedDisputeGame(payable(address(disputeGameFactory.create(GAME_TYPE, rootClaim, extraData))));
 
         // Check immutables
-        assertEq(gameProxy.proposer(), PROPOSER);
-        assertEq(gameProxy.challenger(), CHALLENGER);
         assertEq(gameProxy.gameType().raw(), GAME_TYPE.raw());
         assertEq(gameProxy.absolutePrestate().raw(), absolutePrestate.raw());
         assertEq(gameProxy.maxGameDepth(), 2 ** 3);
         assertEq(gameProxy.splitDepth(), 2 ** 2);
-        assertEq(gameProxy.maxClockDuration().raw(), 3.5 days);
+        assertEq(gameProxy.gameDuration().raw(), 7 days);
         assertEq(address(gameProxy.vm()), address(_vm));
 
         // Label the proxy
@@ -131,16 +128,13 @@ contract PermissionedDisputeGame_Test is PermissionedDisputeGame_Init {
         vm.startPrank(CHALLENGER, CHALLENGER);
         uint256 firstBond = _getRequiredBond(0);
         vm.deal(CHALLENGER, firstBond);
-        (,,,, Claim disputed,,) = gameProxy.claimData(0);
-        gameProxy.attack{ value: firstBond }(disputed, 0, Claim.wrap(0));
+        gameProxy.attack{ value: firstBond }(0, Claim.wrap(0));
         uint256 secondBond = _getRequiredBond(1);
         vm.deal(CHALLENGER, secondBond);
-        (,,,, disputed,,) = gameProxy.claimData(1);
-        gameProxy.defend{ value: secondBond }(disputed, 1, Claim.wrap(0));
+        gameProxy.defend{ value: secondBond }(1, Claim.wrap(0));
         uint256 thirdBond = _getRequiredBond(2);
         vm.deal(CHALLENGER, thirdBond);
-        (,,,, disputed,,) = gameProxy.claimData(2);
-        gameProxy.move{ value: thirdBond }(disputed, 2, Claim.wrap(0), true);
+        gameProxy.move{ value: thirdBond }(2, Claim.wrap(0), true);
         vm.stopPrank();
     }
 
@@ -149,16 +143,13 @@ contract PermissionedDisputeGame_Test is PermissionedDisputeGame_Init {
         vm.startPrank(PROPOSER, PROPOSER);
         uint256 firstBond = _getRequiredBond(0);
         vm.deal(PROPOSER, firstBond);
-        (,,,, Claim disputed,,) = gameProxy.claimData(0);
-        gameProxy.attack{ value: firstBond }(disputed, 0, Claim.wrap(0));
+        gameProxy.attack{ value: firstBond }(0, Claim.wrap(0));
         uint256 secondBond = _getRequiredBond(1);
         vm.deal(PROPOSER, secondBond);
-        (,,,, disputed,,) = gameProxy.claimData(1);
-        gameProxy.defend{ value: secondBond }(disputed, 1, Claim.wrap(0));
+        gameProxy.defend{ value: secondBond }(1, Claim.wrap(0));
         uint256 thirdBond = _getRequiredBond(2);
         vm.deal(PROPOSER, thirdBond);
-        (,,,, disputed,,) = gameProxy.claimData(2);
-        gameProxy.move{ value: thirdBond }(disputed, 2, Claim.wrap(0), true);
+        gameProxy.move{ value: thirdBond }(2, Claim.wrap(0), true);
         vm.stopPrank();
     }
 
@@ -168,15 +159,12 @@ contract PermissionedDisputeGame_Test is PermissionedDisputeGame_Init {
         vm.assume(_p != PROPOSER && _p != CHALLENGER);
 
         vm.startPrank(_p, _p);
-        (,,,, Claim disputed,,) = gameProxy.claimData(0);
         vm.expectRevert(BadAuth.selector);
-        gameProxy.attack(disputed, 0, Claim.wrap(0));
+        gameProxy.attack(0, Claim.wrap(0));
         vm.expectRevert(BadAuth.selector);
-        gameProxy.defend(disputed, 0, Claim.wrap(0));
+        gameProxy.defend(1, Claim.wrap(0));
         vm.expectRevert(BadAuth.selector);
-        gameProxy.move(disputed, 0, Claim.wrap(0), true);
-        vm.expectRevert(BadAuth.selector);
-        gameProxy.step(0, true, absolutePrestateData, hex"");
+        gameProxy.move(2, Claim.wrap(0), true);
         vm.stopPrank();
     }
 

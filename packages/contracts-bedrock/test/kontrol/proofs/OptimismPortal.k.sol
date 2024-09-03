@@ -8,7 +8,6 @@ import {
     IOptimismPortal as OptimismPortal,
     ISuperchainConfig as SuperchainConfig
 } from "./interfaces/KontrolInterfaces.sol";
-import "src/libraries/PortalErrors.sol";
 
 contract OptimismPortalKontrol is DeploymentSummary, KontrolUtils {
     OptimismPortal optimismPortal;
@@ -28,10 +27,7 @@ contract OptimismPortalKontrol is DeploymentSummary, KontrolUtils {
         vm.prank(optimismPortal.guardian());
         superchainConfig.pause("identifier");
 
-        // We need to encode the error selector as bytes instead of bytes4 because the bytes4 signature
-        // it's not currently supported
-        // Tracking issue: https://github.com/runtimeverification/kontrol/issues/466
-        vm.expectRevert(abi.encodeWithSelector(CallPaused.selector));
+        vm.expectRevert("OptimismPortal: paused");
         optimismPortal.finalizeWithdrawalTransaction(_tx);
     }
 
@@ -52,10 +48,7 @@ contract OptimismPortalKontrol is DeploymentSummary, KontrolUtils {
         vm.prank(optimismPortal.guardian());
         superchainConfig.pause("identifier");
 
-        // We need to encode the error selector as bytes instead of bytes4 because the bytes4 signature
-        // it's not currently supported
-        // Tracking issue: https://github.com/runtimeverification/kontrol/issues/466
-        vm.expectRevert(abi.encodeWithSelector(CallPaused.selector));
+        vm.expectRevert("OptimismPortal: paused");
         optimismPortal.proveWithdrawalTransaction(_tx, _l2OutputIndex, _outputRootProof, _withdrawalProof);
     }
 

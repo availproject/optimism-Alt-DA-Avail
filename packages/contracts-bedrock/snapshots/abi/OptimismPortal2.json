@@ -10,6 +10,11 @@
         "internalType": "uint256",
         "name": "_disputeGameFinalityDelaySeconds",
         "type": "uint256"
+      },
+      {
+        "internalType": "GameType",
+        "name": "_initialRespectedGameType",
+        "type": "uint32"
       }
     ],
     "stateMutability": "nonpayable",
@@ -18,6 +23,32 @@
   {
     "stateMutability": "payable",
     "type": "receive"
+  },
+  {
+    "inputs": [],
+    "name": "GUARDIAN",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "SYSTEM_CONFIG",
+    "outputs": [
+      {
+        "internalType": "contract SystemConfig",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
   },
   {
     "inputs": [
@@ -278,11 +309,6 @@
         "internalType": "contract SuperchainConfig",
         "name": "_superchainConfig",
         "type": "address"
-      },
-      {
-        "internalType": "GameType",
-        "name": "_initialRespectedGameType",
-        "type": "uint32"
       }
     ],
     "name": "initialize",
@@ -607,19 +633,6 @@
     "anonymous": false,
     "inputs": [
       {
-        "indexed": true,
-        "internalType": "contract IDisputeGame",
-        "name": "disputeGame",
-        "type": "address"
-      }
-    ],
-    "name": "DisputeGameBlacklisted",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
         "indexed": false,
         "internalType": "uint8",
         "name": "version",
@@ -627,25 +640,6 @@
       }
     ],
     "name": "Initialized",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "GameType",
-        "name": "newGameType",
-        "type": "uint32"
-      },
-      {
-        "indexed": true,
-        "internalType": "Timestamp",
-        "name": "updatedAt",
-        "type": "uint64"
-      }
-    ],
-    "name": "RespectedGameTypeSet",
     "type": "event"
   },
   {
@@ -722,89 +716,5 @@
     ],
     "name": "WithdrawalProven",
     "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "bytes32",
-        "name": "withdrawalHash",
-        "type": "bytes32"
-      },
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "proofSubmitter",
-        "type": "address"
-      }
-    ],
-    "name": "WithdrawalProvenExtension1",
-    "type": "event"
-  },
-  {
-    "inputs": [],
-    "name": "BadTarget",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "CallPaused",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "ContentLengthMismatch",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "EmptyItem",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "GasEstimation",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "InvalidDataRemainder",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "InvalidHeader",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "LargeCalldata",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "OutOfGas",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "SmallGasLimit",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "Unauthorized",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "UnexpectedList",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "UnexpectedString",
-    "type": "error"
   }
 ]

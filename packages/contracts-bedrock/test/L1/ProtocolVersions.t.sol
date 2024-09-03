@@ -29,7 +29,7 @@ contract ProtocolVersions_Init is CommonTest {
 
 contract ProtocolVersions_Initialize_Test is ProtocolVersions_Init {
     /// @dev Tests that initialization sets the correct values.
-    function test_initialize_values_succeeds() external view {
+    function test_initialize_values_succeeds() external {
         ProtocolVersions protocolVersionsImpl = ProtocolVersions(deploy.mustGetAddress("ProtocolVersions"));
         address owner = deploy.cfg().finalSystemOwner();
 

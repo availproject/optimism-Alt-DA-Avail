@@ -23,12 +23,7 @@
       },
       {
         "internalType": "Duration",
-        "name": "_clockExtension",
-        "type": "uint64"
-      },
-      {
-        "internalType": "Duration",
-        "name": "_maxClockDuration",
+        "name": "_gameDuration",
         "type": "uint64"
       },
       {
@@ -54,6 +49,14 @@
     ],
     "stateMutability": "nonpayable",
     "type": "constructor"
+  },
+  {
+    "stateMutability": "payable",
+    "type": "fallback"
+  },
+  {
+    "stateMutability": "payable",
+    "type": "receive"
   },
   {
     "inputs": [],
@@ -92,25 +95,7 @@
     "type": "function"
   },
   {
-    "inputs": [],
-    "name": "anchorStateRegistry",
-    "outputs": [
-      {
-        "internalType": "contract IAnchorStateRegistry",
-        "name": "registry_",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
     "inputs": [
-      {
-        "internalType": "Claim",
-        "name": "_disputed",
-        "type": "bytes32"
-      },
       {
         "internalType": "uint256",
         "name": "_parentIndex",
@@ -125,46 +110,6 @@
     "name": "attack",
     "outputs": [],
     "stateMutability": "payable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "components": [
-          {
-            "internalType": "bytes32",
-            "name": "version",
-            "type": "bytes32"
-          },
-          {
-            "internalType": "bytes32",
-            "name": "stateRoot",
-            "type": "bytes32"
-          },
-          {
-            "internalType": "bytes32",
-            "name": "messagePasserStorageRoot",
-            "type": "bytes32"
-          },
-          {
-            "internalType": "bytes32",
-            "name": "latestBlockhash",
-            "type": "bytes32"
-          }
-        ],
-        "internalType": "struct Types.OutputRootProof",
-        "name": "_outputRootProof",
-        "type": "tuple"
-      },
-      {
-        "internalType": "bytes",
-        "name": "_headerRLP",
-        "type": "bytes"
-      }
-    ],
-    "name": "challengeRootL2Block",
-    "outputs": [],
-    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
@@ -243,38 +188,6 @@
     "type": "function"
   },
   {
-    "inputs": [
-      {
-        "internalType": "Hash",
-        "name": "",
-        "type": "bytes32"
-      }
-    ],
-    "name": "claims",
-    "outputs": [
-      {
-        "internalType": "bool",
-        "name": "",
-        "type": "bool"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "clockExtension",
-    "outputs": [
-      {
-        "internalType": "Duration",
-        "name": "clockExtension_",
-        "type": "uint64"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
     "inputs": [],
     "name": "createdAt",
     "outputs": [
@@ -309,11 +222,6 @@
   {
     "inputs": [
       {
-        "internalType": "Claim",
-        "name": "_disputed",
-        "type": "bytes32"
-      },
-      {
         "internalType": "uint256",
         "name": "_parentIndex",
         "type": "uint256"
@@ -344,19 +252,6 @@
   },
   {
     "inputs": [],
-    "name": "gameCreator",
-    "outputs": [
-      {
-        "internalType": "address",
-        "name": "creator_",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "pure",
-    "type": "function"
-  },
-  {
-    "inputs": [],
     "name": "gameData",
     "outputs": [
       {
@@ -380,30 +275,11 @@
   },
   {
     "inputs": [],
-    "name": "gameType",
-    "outputs": [
-      {
-        "internalType": "GameType",
-        "name": "gameType_",
-        "type": "uint32"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "_claimIndex",
-        "type": "uint256"
-      }
-    ],
-    "name": "getChallengerDuration",
+    "name": "gameDuration",
     "outputs": [
       {
         "internalType": "Duration",
-        "name": "duration_",
+        "name": "gameDuration_",
         "type": "uint64"
       }
     ],
@@ -411,19 +287,13 @@
     "type": "function"
   },
   {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "_claimIndex",
-        "type": "uint256"
-      }
-    ],
-    "name": "getNumToResolve",
+    "inputs": [],
+    "name": "gameType",
     "outputs": [
       {
-        "internalType": "uint256",
-        "name": "numRemainingChildren_",
-        "type": "uint256"
+        "internalType": "GameType",
+        "name": "gameType_",
+        "type": "uint32"
       }
     ],
     "stateMutability": "view",
@@ -483,51 +353,12 @@
   },
   {
     "inputs": [],
-    "name": "l2BlockNumberChallenged",
-    "outputs": [
-      {
-        "internalType": "bool",
-        "name": "",
-        "type": "bool"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "l2BlockNumberChallenger",
-    "outputs": [
-      {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
     "name": "l2ChainId",
     "outputs": [
       {
         "internalType": "uint256",
         "name": "l2ChainId_",
         "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "maxClockDuration",
-    "outputs": [
-      {
-        "internalType": "Duration",
-        "name": "maxClockDuration_",
-        "type": "uint64"
       }
     ],
     "stateMutability": "view",
@@ -548,11 +379,6 @@
   },
   {
     "inputs": [
-      {
-        "internalType": "Claim",
-        "name": "_disputed",
-        "type": "bytes32"
-      },
       {
         "internalType": "uint256",
         "name": "_challengeIndex",
@@ -575,40 +401,6 @@
     "type": "function"
   },
   {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "name": "resolutionCheckpoints",
-    "outputs": [
-      {
-        "internalType": "bool",
-        "name": "initialCheckpointComplete",
-        "type": "bool"
-      },
-      {
-        "internalType": "uint32",
-        "name": "subgameIndex",
-        "type": "uint32"
-      },
-      {
-        "internalType": "Position",
-        "name": "leftmostPosition",
-        "type": "uint128"
-      },
-      {
-        "internalType": "address",
-        "name": "counteredBy",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
     "inputs": [],
     "name": "resolve",
     "outputs": [
@@ -627,16 +419,11 @@
         "internalType": "uint256",
         "name": "_claimIndex",
         "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "_numToResolve",
-        "type": "uint256"
       }
     ],
     "name": "resolveClaim",
     "outputs": [],
-    "stateMutability": "nonpayable",
+    "stateMutability": "payable",
     "type": "function"
   },
   {
@@ -647,25 +434,6 @@
         "internalType": "Timestamp",
         "name": "",
         "type": "uint64"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "name": "resolvedSubgames",
-    "outputs": [
-      {
-        "internalType": "bool",
-        "name": "",
-        "type": "bool"
       }
     ],
     "stateMutability": "view",
@@ -783,30 +551,6 @@
     "type": "function"
   },
   {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "name": "subgames",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
     "inputs": [],
     "name": "version",
     "outputs": [
@@ -895,11 +639,6 @@
   },
   {
     "inputs": [],
-    "name": "BlockNumberMatches",
-    "type": "error"
-  },
-  {
-    "inputs": [],
     "name": "BondTransferFailed",
     "type": "error"
   },
@@ -935,17 +674,7 @@
   },
   {
     "inputs": [],
-    "name": "ContentLengthMismatch",
-    "type": "error"
-  },
-  {
-    "inputs": [],
     "name": "DuplicateStep",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "EmptyItem",
     "type": "error"
   },
   {
@@ -965,37 +694,7 @@
   },
   {
     "inputs": [],
-    "name": "InvalidClockExtension",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "InvalidDataRemainder",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "InvalidDisputedClaimIndex",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "InvalidHeader",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "InvalidHeaderRLP",
-    "type": "error"
-  },
-  {
-    "inputs": [],
     "name": "InvalidLocalIdent",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "InvalidOutputRootProof",
     "type": "error"
   },
   {
@@ -1015,27 +714,12 @@
   },
   {
     "inputs": [],
-    "name": "L2BlockNumberChallenged",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "MaxDepthTooLarge",
-    "type": "error"
-  },
-  {
-    "inputs": [],
     "name": "NoCreditToClaim",
     "type": "error"
   },
   {
     "inputs": [],
     "name": "OutOfOrderResolution",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "UnexpectedList",
     "type": "error"
   },
   {
@@ -1047,11 +731,6 @@
       }
     ],
     "name": "UnexpectedRootClaim",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "UnexpectedString",
     "type": "error"
   },
   {

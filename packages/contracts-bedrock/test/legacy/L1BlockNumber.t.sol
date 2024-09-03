@@ -37,7 +37,7 @@ contract L1BlockNumberTest is Test {
     }
 
     /// @dev Tests that `getL1BlockNumber` returns the set block number.
-    function test_getL1BlockNumber_succeeds() external view {
+    function test_getL1BlockNumber_succeeds() external {
         assertEq(bn.getL1BlockNumber(), number);
     }
 

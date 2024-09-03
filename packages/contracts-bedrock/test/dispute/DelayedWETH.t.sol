@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.15;
 
-import "src/dispute/lib/Types.sol";
-import "src/dispute/lib/Errors.sol";
+import "src/libraries/DisputeTypes.sol";
+import "src/libraries/DisputeErrors.sol";
 
 import { Test } from "forge-std/Test.sol";
 import { DisputeGameFactory, IDisputeGameFactory } from "src/dispute/DisputeGameFactory.sol";
@@ -30,7 +30,7 @@ contract DelayedWETH_Init is CommonTest {
 
 contract DelayedWETH_Initialize_Test is DelayedWETH_Init {
     /// @dev Tests that initialization is successful.
-    function test_initialize_succeeds() public view {
+    function test_initialize_succeeds() public {
         assertEq(delayedWeth.owner(), address(this));
         assertEq(address(delayedWeth.config()), address(superchainConfig));
     }
@@ -158,7 +158,7 @@ contract DelayedWETH_Withdraw_Test is DelayedWETH_Init {
         vm.warp(block.timestamp + delayedWeth.delay() + 1);
 
         // Pause the contract.
-        address guardian = optimismPortal.guardian();
+        address guardian = optimismPortal.GUARDIAN();
         vm.prank(guardian);
         superchainConfig.pause("identifier");
 

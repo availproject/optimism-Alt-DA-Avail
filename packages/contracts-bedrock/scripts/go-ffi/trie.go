@@ -13,7 +13,6 @@ import (
 	"github.com/ethereum/go-ethereum/core/rawdb"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/trie"
-	"github.com/ethereum/go-ethereum/triedb"
 )
 
 // Variant enum
@@ -134,7 +133,7 @@ func FuzzTrie() {
 func genTrieTestCase(selectEmptyKey bool) trieTestCase {
 	// Create an empty merkle trie
 	memdb := rawdb.NewMemoryDatabase()
-	randTrie := trie.NewEmpty(triedb.NewDatabase(memdb, nil))
+	randTrie := trie.NewEmpty(trie.NewDatabase(memdb, nil))
 
 	// Get a random number of elements to put into the trie
 	randN := randRange(2, 1024)

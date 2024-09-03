@@ -120,7 +120,7 @@ contract OptimistAllowlist_Initializer is Test {
 }
 
 contract OptimistAllowlistTest is OptimistAllowlist_Initializer {
-    function test_constructor_succeeds() external view {
+    function test_constructor_succeeds() external {
         // expect attestationStation to be set
         assertEq(address(optimistAllowlist.ATTESTATION_STATION()), address(attestationStation));
         assertEq(optimistAllowlist.ALLOWLIST_ATTESTOR(), alice_allowlistAttestor);
@@ -129,7 +129,7 @@ contract OptimistAllowlistTest is OptimistAllowlist_Initializer {
     }
 
     /// @notice Base case, a account without any relevant attestations should not be able to mint.
-    function test_isAllowedToMint_withoutAnyAttestations_fails() external view {
+    function test_isAllowedToMint_withoutAnyAttestations_fails() external {
         assertFalse(optimistAllowlist.isAllowedToMint(bob));
     }
 

@@ -2,9 +2,11 @@
 pragma solidity 0.8.15;
 
 import { Test } from "forge-std/Test.sol";
-import { GnosisSafe as Safe } from "safe-contracts/GnosisSafe.sol";
+import { Safe } from "safe-contracts/Safe.sol";
 import { SafeSigners } from "src/Safe/SafeSigners.sol";
 import "test/safe-tools/SafeTestTools.sol";
+
+import { SignatureDecoder } from "safe-contracts/common/SignatureDecoder.sol";
 
 contract SafeSigners_Test is Test, SafeTestTools {
     bytes4 internal constant EIP1271_MAGIC_VALUE = 0x20c13b0b;

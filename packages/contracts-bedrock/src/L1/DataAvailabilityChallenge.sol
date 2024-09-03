@@ -224,7 +224,7 @@ contract DataAvailabilityChallenge is OwnableUpgradeable, ISemver {
     /// @return The challenge struct.
     function getChallenge(
         uint256 challengedBlockNumber,
-        bytes calldata challengedCommitment
+        bytes memory challengedCommitment
     )
         public
         view
@@ -239,7 +239,7 @@ contract DataAvailabilityChallenge is OwnableUpgradeable, ISemver {
     /// @return The status of the challenge.
     function getChallengeStatus(
         uint256 challengedBlockNumber,
-        bytes calldata challengedCommitment
+        bytes memory challengedCommitment
     )
         public
         view
@@ -263,7 +263,7 @@ contract DataAvailabilityChallenge is OwnableUpgradeable, ISemver {
     /// @dev The commitment type is located in the first byte of the commitment.
     /// @param commitment The commitment from which to extract the commitment type.
     /// @return The commitment type of the given commitment.
-    function _getCommitmentType(bytes calldata commitment) internal pure returns (uint8) {
+    function _getCommitmentType(bytes memory commitment) internal pure returns (uint8) {
         return uint8(bytes1(commitment));
     }
 
@@ -272,7 +272,7 @@ contract DataAvailabilityChallenge is OwnableUpgradeable, ISemver {
     ///      The function reverts with `UnknownCommitmentType` if the type is not known and
     ///      with `InvalidCommitmentLength` if the commitment has an unexpected length.
     /// @param commitment The commitment for which to check the type.
-    function validateCommitment(bytes calldata commitment) public pure {
+    function validateCommitment(bytes memory commitment) public pure {
         uint8 commitmentType = _getCommitmentType(commitment);
         if (commitmentType == uint8(CommitmentType.Keccak256)) {
             if (commitment.length != 33) {
@@ -291,37 +291,11 @@ contract DataAvailabilityChallenge is OwnableUpgradeable, ISemver {
     ///      if the caller does not have a bond or if the challenge already exists.
     /// @param challengedBlockNumber The block number at which the commitment was made.
     /// @param challengedCommitment The commitment that is being challenged.
-    function challenge(uint256 challengedBlockNumber, bytes calldata challengedCommitment) external payable {
+    function challenge(uint256 challengedBlockNumber, bytes calldata challengedCommitment) public payable virtual {
         // require the commitment type to be known
         validateCommitment(challengedCommitment);
 
-        // deposit value sent with the transaction as bond
-        deposit();
-
-        // require the caller to have a bond
-        if (balances[msg.sender] < bondSize) {
-            revert BondTooLow(balances[msg.sender], bondSize);
-        }
-
-        // require the challenge status to be uninitialized
-        if (getChallengeStatus(challengedBlockNumber, challengedCommitment) != ChallengeStatus.Uninitialized) {
-            revert ChallengeExists();
-        }
-
-        // require the current block to be in the challenge window
-        if (!_isInChallengeWindow(challengedBlockNumber)) {
-            revert ChallengeWindowNotOpen();
-        }
-
-        // reduce the caller's balance
-        balances[msg.sender] -= bondSize;
-
-        // store the challenger's address, bond size, and start block of the challenge
-        challenges[challengedBlockNumber][challengedCommitment] =
-            Challenge({ challenger: msg.sender, lockedBond: bondSize, startBlock: block.number, resolvedBlock: 0 });
-
-        // emit an event to notify that the challenge status is now active
-        emit ChallengeStatusChanged(challengedBlockNumber, challengedCommitment, ChallengeStatus.Active);
+        _updateStateOnChallenge(challengedBlockNumber, challengedCommitment);
     }
 
     /// @notice Resolve a challenge by providing the data corresponding to the challenged commitment.
@@ -338,6 +312,7 @@ contract DataAvailabilityChallenge is OwnableUpgradeable, ISemver {
         bytes calldata resolveData
     )
         external
+        virtual
     {
         // require the commitment type to be known
         validateCommitment(challengedCommitment);
@@ -434,6 +409,35 @@ contract DataAvailabilityChallenge is OwnableUpgradeable, ISemver {
 
         // Emit balance update event
         emit BalanceChanged(expiredChallenge.challenger, balances[expiredChallenge.challenger]);
+    }
+
+    function _updateStateOnChallenge(uint256 challengedBlockNumber, bytes calldata challengedCommitment) internal {
+        // deposit value sent with the transaction as bond
+        deposit();
+         // require the caller to have a bond
+        if (balances[msg.sender] < bondSize) {
+            revert BondTooLow(balances[msg.sender], bondSize);
+        }
+
+        // require the challenge status to be uninitialized
+        if (getChallengeStatus(challengedBlockNumber, challengedCommitment) != ChallengeStatus.Uninitialized) {
+            revert ChallengeExists();
+        }
+
+        // require the current block to be in the challenge window
+        if (!_isInChallengeWindow(challengedBlockNumber)) {
+            revert ChallengeWindowNotOpen();
+        }
+
+        // reduce the caller's balance
+        balances[msg.sender] -= bondSize;
+
+        // store the challenger's address, bond size, and start block of the challenge
+        challenges[challengedBlockNumber][challengedCommitment] =
+            Challenge({ challenger: msg.sender, lockedBond: bondSize, startBlock: block.number, resolvedBlock: 0 });
+
+        // emit an event to notify that the challenge status is now active
+        emit ChallengeStatusChanged(challengedBlockNumber, challengedCommitment, ChallengeStatus.Active);
     }
 }
 

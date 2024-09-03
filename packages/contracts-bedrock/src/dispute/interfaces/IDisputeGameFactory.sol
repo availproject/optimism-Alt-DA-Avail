@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 import { IDisputeGame } from "./IDisputeGame.sol";
 
-import "src/dispute/lib/Types.sol";
+import "src/libraries/DisputeTypes.sol";
 
 /// @title IDisputeGameFactory
 /// @notice The interface for a DisputeGameFactory contract.
