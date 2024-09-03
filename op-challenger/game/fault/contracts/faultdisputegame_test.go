@@ -158,6 +158,15 @@ func TestSimpleGetters(t *testing.T) {
 				return game.CallResolve(context.Background())
 			},
 		},
+		{
+			methodAlias: "resolvedAt",
+			method:      methodResolvedAt,
+			result:      uint64(240402),
+			expected:    time.Unix(240402, 0),
+			call: func(game FaultDisputeGameContract) (any, error) {
+				return game.GetResolvedAt(context.Background(), rpcblock.Latest)
+			},
+		},
 	}
 	for _, version := range versions {
 		version := version
@@ -788,6 +797,7 @@ func setupFaultDisputeGameTest(t *testing.T, version contractVersion) (*batching
 	caller := batching.NewMultiCaller(stubRpc, batching.DefaultBatchSize)
 
 	stubRpc.SetResponse(fdgAddr, methodVersion, rpcblock.Latest, nil, []interface{}{version.version})
+	stubRpc.SetResponse(oracleAddr, methodVersion, rpcblock.Latest, nil, []interface{}{oracleLatest})
 	game, err := NewFaultDisputeGameContract(context.Background(), contractMetrics.NoopContractMetrics, fdgAddr, caller)
 	require.NoError(t, err)
 	return stubRpc, game

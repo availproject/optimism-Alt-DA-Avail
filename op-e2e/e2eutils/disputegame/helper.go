@@ -19,6 +19,7 @@ import (
 	"github.com/ethereum-optimism/optimism/op-e2e/e2eutils/transactions"
 	"github.com/ethereum-optimism/optimism/op-e2e/e2eutils/wait"
 	"github.com/ethereum-optimism/optimism/op-node/rollup"
+	"github.com/ethereum-optimism/optimism/op-service/endpoint"
 	"github.com/ethereum-optimism/optimism/op-service/eth"
 	"github.com/ethereum-optimism/optimism/op-service/sources"
 	"github.com/ethereum-optimism/optimism/op-service/sources/batching"
@@ -70,10 +71,10 @@ func WithFutureProposal() GameOpt {
 }
 
 type DisputeSystem interface {
-	L1BeaconEndpoint() string
-	NodeEndpoint(name string) string
+	L1BeaconEndpoint() endpoint.RestHTTP
+	NodeEndpoint(name string) endpoint.RPC
 	NodeClient(name string) *ethclient.Client
-	RollupEndpoint(name string) string
+	RollupEndpoint(name string) endpoint.RPC
 	RollupClient(name string) *sources.RollupClient
 
 	L1Deployments() *genesis.L1Deployments
@@ -124,15 +125,14 @@ func (h *FactoryHelper) PreimageHelper(ctx context.Context) *preimage.Helper {
 	opts := &bind.CallOpts{Context: ctx}
 	gameAddr, err := h.Factory.GameImpls(opts, cannonGameType)
 	h.Require.NoError(err)
-	game, err := bindings.NewFaultDisputeGameCaller(gameAddr, h.Client)
+	caller := batching.NewMultiCaller(h.Client.Client(), batching.DefaultBatchSize)
+	game, err := contracts.NewFaultDisputeGameContract(ctx, metrics.NoopContractMetrics, gameAddr, caller)
 	h.Require.NoError(err)
-	vmAddr, err := game.Vm(opts)
+	vm, err := game.Vm(ctx)
 	h.Require.NoError(err)
-	vm, err := bindings.NewMIPSCaller(vmAddr, h.Client)
+	oracle, err := vm.Oracle(ctx)
 	h.Require.NoError(err)
-	oracleAddr, err := vm.Oracle(opts)
-	h.Require.NoError(err)
-	return preimage.NewHelper(h.T, h.Opts, h.Client, oracleAddr)
+	return preimage.NewHelper(h.T, h.PrivKey, h.Client, oracle)
 }
 
 func NewGameCfg(opts ...GameOpt) *GameCfg {

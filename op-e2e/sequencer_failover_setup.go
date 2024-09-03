@@ -9,7 +9,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/stretchr/testify/require"
@@ -17,6 +16,7 @@ import (
 	bss "github.com/ethereum-optimism/optimism/op-batcher/batcher"
 	batcherFlags "github.com/ethereum-optimism/optimism/op-batcher/flags"
 	con "github.com/ethereum-optimism/optimism/op-conductor/conductor"
+	"github.com/ethereum-optimism/optimism/op-conductor/consensus"
 	conrpc "github.com/ethereum-optimism/optimism/op-conductor/rpc"
 	"github.com/ethereum-optimism/optimism/op-e2e/e2eutils/wait"
 	rollupNode "github.com/ethereum-optimism/optimism/op-node/node"
@@ -74,15 +74,15 @@ func setupSequencerFailoverTest(t *testing.T) (*System, map[string]*conductor, f
 	c3 := conductors[Sequencer3Name]
 
 	require.NoError(t, waitForLeadership(t, c1))
-	require.NoError(t, c1.client.AddServerAsVoter(ctx, Sequencer2Name, c2.ConsensusEndpoint()))
-	require.NoError(t, c1.client.AddServerAsVoter(ctx, Sequencer3Name, c3.ConsensusEndpoint()))
+	require.NoError(t, c1.client.AddServerAsVoter(ctx, Sequencer2Name, c2.ConsensusEndpoint(), 0))
+	require.NoError(t, c1.client.AddServerAsVoter(ctx, Sequencer3Name, c3.ConsensusEndpoint(), 0))
 	require.True(t, leader(t, ctx, c1))
 	require.False(t, leader(t, ctx, c2))
 	require.False(t, leader(t, ctx, c3))
 
 	// start sequencing on leader
 	lid, _ := findLeader(t, conductors)
-	unsafeHead, err := sys.Clients[lid].BlockByNumber(ctx, nil)
+	unsafeHead, err := sys.NodeClient(lid).BlockByNumber(ctx, nil)
 	require.NoError(t, err)
 	require.Equal(t, uint64(0), unsafeHead.NumberU64())
 	require.NoError(t, sys.RollupClient(lid).StartSequencer(ctx, unsafeHead.Hash()))
@@ -93,9 +93,9 @@ func setupSequencerFailoverTest(t *testing.T) (*System, map[string]*conductor, f
 	// weirdly, batcher does not submit a batch until unsafe block 9.
 	// It became normal after that and submits a batch every L1 block (2s) per configuration.
 	// Since our health monitor checks on safe head progression, wait for batcher to become normal before proceeding.
-	_, err = wait.ForNextSafeBlock(ctx, sys.Clients[Sequencer1Name])
+	_, err = wait.ForNextSafeBlock(ctx, sys.NodeClient(Sequencer1Name))
 	require.NoError(t, err)
-	_, err = wait.ForNextSafeBlock(ctx, sys.Clients[Sequencer1Name])
+	_, err = wait.ForNextSafeBlock(ctx, sys.NodeClient(Sequencer1Name))
 	require.NoError(t, err)
 
 	// make sure conductor reports all sequencers as healthy, this means they're syncing correctly.
@@ -189,8 +189,8 @@ func setupHAInfra(t *testing.T, ctx context.Context) (*System, map[string]*condu
 	}
 	for _, cfg := range conductorCfgs {
 		cfg := cfg
-		nodePRC := sys.RollupNodes[cfg.name].HTTPEndpoint()
-		engineRPC := sys.EthInstances[cfg.name].HTTPEndpoint()
+		nodePRC := sys.RollupNodes[cfg.name].UserRPC().RPC()
+		engineRPC := sys.EthInstances[cfg.name].UserRPC().RPC()
 		if conductors[cfg.name], err = setupConductor(t, cfg.name, t.TempDir(), nodePRC, engineRPC, cfg.port, cfg.bootstrap, *sys.RollupConfig); err != nil {
 			return nil, nil, err
 		}
@@ -252,6 +252,7 @@ func setupConductor(
 	if err != nil {
 		return nil, err
 	}
+	t.Cleanup(rawClient.Close)
 	client := conrpc.NewAPIClient(rawClient)
 
 	return &conductor{
@@ -277,7 +278,7 @@ func setupBatcher(t *testing.T, sys *System, conductors map[string]*conductor) {
 		conductors[Sequencer3Name].RPCEndpoint(),
 	}, ",")
 	batcherCLIConfig := &bss.CLIConfig{
-		L1EthRpc:               sys.EthInstances["l1"].WSEndpoint(),
+		L1EthRpc:               sys.EthInstances["l1"].UserRPC().RPC(),
 		L2EthRpc:               l2EthRpc,
 		RollupRpc:              rollupRpc,
 		MaxPendingTransactions: 0,
@@ -287,7 +288,7 @@ func setupBatcher(t *testing.T, sys *System, conductors map[string]*conductor) {
 		ApproxComprRatio:       0.4,
 		SubSafetyMargin:        4,
 		PollInterval:           1 * time.Second,
-		TxMgrConfig:            newTxMgrConfig(sys.EthInstances["l1"].WSEndpoint(), sys.Cfg.Secrets.Batcher),
+		TxMgrConfig:            newTxMgrConfig(sys.EthInstances["l1"].UserRPC().RPC(), sys.Cfg.Secrets.Batcher),
 		LogConfig: oplog.CLIConfig{
 			Level:  log.LevelDebug,
 			Format: oplog.FormatText,
@@ -307,7 +308,7 @@ func setupBatcher(t *testing.T, sys *System, conductors map[string]*conductor) {
 }
 
 func sequencerFailoverSystemConfig(t *testing.T, ports map[string]int) SystemConfig {
-	cfg := DefaultSystemConfig(t)
+	cfg := EcotoneSystemConfig(t, &genesisTime)
 	delete(cfg.Nodes, "sequencer")
 	cfg.Nodes[Sequencer1Name] = sequencerCfg(ports[Sequencer1Name])
 	cfg.Nodes[Sequencer2Name] = sequencerCfg(ports[Sequencer2Name])
@@ -324,9 +325,6 @@ func sequencerFailoverSystemConfig(t *testing.T, ports map[string]int) SystemCon
 		Sequencer3Name: {VerifierName, Sequencer1Name},
 		VerifierName:   {Sequencer1Name, Sequencer2Name},
 	}
-	offset := hexutil.Uint64(0)
-	cfg.DeployConfig.L2GenesisDeltaTimeOffset = &offset
-	cfg.DeployConfig.L2GenesisEcotoneTimeOffset = &offset
 
 	return cfg
 }
@@ -356,30 +354,32 @@ func sequencerCfg(rpcPort int) *rollupNode.Config {
 }
 
 func waitForLeadership(t *testing.T, c *conductor) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
 	condition := func() (bool, error) {
-		isLeader, err := c.client.Leader(context.Background())
+		isLeader, err := c.client.Leader(ctx)
 		if err != nil {
 			return false, err
 		}
 		return isLeader, nil
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
 	return wait.For(ctx, 1*time.Second, condition)
 }
 
 func waitForLeadershipChange(t *testing.T, prev *conductor, prevID string, conductors map[string]*conductor, sys *System) string {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
 	condition := func() (bool, error) {
-		isLeader, err := prev.client.Leader(context.Background())
+		isLeader, err := prev.client.Leader(ctx)
 		if err != nil {
 			return false, err
 		}
 		return !isLeader, nil
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
 	err := wait.For(ctx, 1*time.Second, condition)
 	require.NoError(t, err)
 
@@ -394,16 +394,17 @@ func waitForLeadershipChange(t *testing.T, prev *conductor, prevID string, condu
 }
 
 func waitForSequencerStatusChange(t *testing.T, rollupClient *sources.RollupClient, active bool) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
 	condition := func() (bool, error) {
-		isActive, err := rollupClient.SequencerActive(context.Background())
+		isActive, err := rollupClient.SequencerActive(ctx)
 		if err != nil {
 			return false, err
 		}
 		return isActive == active, nil
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
 	return wait.For(ctx, 1*time.Second, condition)
 }
 
@@ -482,9 +483,11 @@ func findFollower(t *testing.T, conductors map[string]*conductor) (string, *cond
 }
 
 func ensureOnlyOneLeader(t *testing.T, sys *System, conductors map[string]*conductor) {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
 	condition := func() (bool, error) {
 		leaders := 0
-		ctx := context.Background()
 		for name, con := range conductors {
 			leader, err := con.client.Leader(ctx)
 			if err != nil {
@@ -501,8 +504,13 @@ func ensureOnlyOneLeader(t *testing.T, sys *System, conductors map[string]*condu
 		}
 		return leaders == 1, nil
 	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
 	require.NoError(t, wait.For(ctx, 1*time.Second, condition))
+}
+
+func memberIDs(membership *consensus.ClusterMembership) []string {
+	ids := make([]string, 0, len(membership.Servers))
+	for _, member := range membership.Servers {
+		ids = append(ids, member.ID)
+	}
+	return ids
 }

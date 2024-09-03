@@ -17,6 +17,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/consensus/misc/eip4844"
 	"github.com/ethereum/go-ethereum/core"
+	"github.com/ethereum/go-ethereum/core/txpool"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto/kzg4844"
 	"github.com/ethereum/go-ethereum/log"
@@ -44,7 +45,7 @@ func testSendState() *SendState {
 
 // testHarness houses the necessary resources to test the SimpleTxManager.
 type testHarness struct {
-	cfg       Config
+	cfg       *Config
 	mgr       *SimpleTxManager
 	backend   *mockBackend
 	gasPricer *gasPricer
@@ -52,7 +53,7 @@ type testHarness struct {
 
 // newTestHarnessWithConfig initializes a testHarness with a specific
 // configuration.
-func newTestHarnessWithConfig(t *testing.T, cfg Config) *testHarness {
+func newTestHarnessWithConfig(t *testing.T, cfg *Config) *testHarness {
 	g := newGasPricer(3)
 	backend := newMockBackend(g)
 	cfg.Backend = backend
@@ -104,19 +105,23 @@ func (h testHarness) createBlobTxCandidate() TxCandidate {
 	}
 }
 
-func configWithNumConfs(numConfirmations uint64) Config {
-	return Config{
-		ResubmissionTimeout:       time.Second,
+func configWithNumConfs(numConfirmations uint64) *Config {
+	cfg := Config{
 		ReceiptQueryInterval:      50 * time.Millisecond,
 		NumConfirmations:          numConfirmations,
 		SafeAbortNonceTooLowCount: 3,
-		FeeLimitMultiplier:        5,
 		TxNotInMempoolTimeout:     1 * time.Hour,
 		Signer: func(ctx context.Context, from common.Address, tx *types.Transaction) (*types.Transaction, error) {
 			return tx, nil
 		},
 		From: common.Address{},
 	}
+
+	cfg.ResubmissionTimeout.Store(int64(time.Second))
+	cfg.FeeLimitMultiplier.Store(5)
+	cfg.MinBlobTxFee.Store(defaultMinBlobTxFee)
+
+	return &cfg
 }
 
 type gasPricer struct {
@@ -399,14 +404,14 @@ func TestAlreadyReserved(t *testing.T) {
 	h := newTestHarnessWithConfig(t, conf)
 
 	sendTx := func(ctx context.Context, tx *types.Transaction) error {
-		return ErrAlreadyReserved
+		return txpool.ErrAlreadyReserved
 	}
 	h.backend.setTxSender(sendTx)
 
 	_, err := h.mgr.Send(context.Background(), TxCandidate{
 		To: &common.Address{},
 	})
-	require.ErrorIs(t, err, ErrAlreadyReserved)
+	require.ErrorIs(t, err, txpool.ErrAlreadyReserved)
 }
 
 // TestTxMgrConfirmsAtHigherGasPrice asserts that Send properly returns the max gas
@@ -546,7 +551,7 @@ func TestTxMgr_CraftBlobTx(t *testing.T) {
 	// Validate the gas tip cap and fee cap.
 	require.Equal(t, gasTipCap, tx.GasTipCap())
 	require.Equal(t, gasFeeCap, tx.GasFeeCap())
-	require.Equal(t, minBlobTxFee, tx.BlobGasFeeCap())
+	require.Equal(t, defaultMinBlobTxFee, tx.BlobGasFeeCap())
 
 	// Validate the nonce was set correctly using the backend.
 	require.Equal(t, uint64(startingNonce), tx.Nonce())
@@ -563,7 +568,7 @@ func TestTxMgr_CraftBlobTx(t *testing.T) {
 
 	// verify the blobs
 	for i := range sidecar.Blobs {
-		require.NoError(t, kzg4844.VerifyBlobProof(sidecar.Blobs[i], sidecar.Commitments[i], sidecar.Proofs[i]))
+		require.NoError(t, kzg4844.VerifyBlobProof(&sidecar.Blobs[i], sidecar.Commitments[i], sidecar.Proofs[i]))
 	}
 	b1 := eth.Blob(sidecar.Blobs[0])
 	d1, err := b1.ToData()
@@ -854,7 +859,11 @@ func TestManagerErrsOnZeroCLIConfs(t *testing.T) {
 func TestManagerErrsOnZeroConfs(t *testing.T) {
 	t.Parallel()
 
-	_, err := NewSimpleTxManagerFromConfig("TEST", testlog.Logger(t, log.LevelCrit), &metrics.NoopTxMetrics{}, Config{})
+	cfg := Config{
+		NumConfirmations: 0,
+	}
+
+	_, err := NewSimpleTxManagerFromConfig("TEST", testlog.Logger(t, log.LevelCrit), &metrics.NoopTxMetrics{}, &cfg)
 	require.Error(t, err)
 }
 
@@ -948,13 +957,16 @@ func TestWaitMinedReturnsReceiptAfterFailure(t *testing.T) {
 
 	var borkedBackend failingBackend
 
+	cfg := Config{
+		ReceiptQueryInterval:      50 * time.Millisecond,
+		NumConfirmations:          1,
+		SafeAbortNonceTooLowCount: 3,
+	}
+	cfg.ResubmissionTimeout.Store(int64(time.Second))
+	cfg.MinBlobTxFee.Store(defaultMinBlobTxFee)
+
 	mgr := &SimpleTxManager{
-		cfg: Config{
-			ResubmissionTimeout:       time.Second,
-			ReceiptQueryInterval:      50 * time.Millisecond,
-			NumConfirmations:          1,
-			SafeAbortNonceTooLowCount: 3,
-		},
+		cfg:     &cfg,
 		name:    "TEST",
 		backend: &borkedBackend,
 		l:       testlog.Logger(t, log.LevelCrit),
@@ -981,18 +993,21 @@ func doGasPriceIncrease(t *testing.T, txTipCap, txFeeCap, newTip, newBaseFee int
 		returnSuccessHeader: true,
 	}
 
-	mgr := &SimpleTxManager{
-		cfg: Config{
-			ResubmissionTimeout:       time.Second,
-			ReceiptQueryInterval:      50 * time.Millisecond,
-			NumConfirmations:          1,
-			SafeAbortNonceTooLowCount: 3,
-			FeeLimitMultiplier:        5,
-			Signer: func(ctx context.Context, from common.Address, tx *types.Transaction) (*types.Transaction, error) {
-				return tx, nil
-			},
-			From: common.Address{},
+	cfg := Config{
+		ReceiptQueryInterval:      50 * time.Millisecond,
+		NumConfirmations:          1,
+		SafeAbortNonceTooLowCount: 3,
+		Signer: func(ctx context.Context, from common.Address, tx *types.Transaction) (*types.Transaction, error) {
+			return tx, nil
 		},
+		From: common.Address{},
+	}
+	cfg.ResubmissionTimeout.Store(int64(time.Second))
+	cfg.FeeLimitMultiplier.Store(5)
+	cfg.MinBlobTxFee.Store(defaultMinBlobTxFee)
+
+	mgr := &SimpleTxManager{
+		cfg:     &cfg,
 		name:    "TEST",
 		backend: &borkedBackend,
 		l:       testlog.Logger(t, log.LevelCrit),
@@ -1151,19 +1166,22 @@ func testIncreaseGasPriceLimit(t *testing.T, lt gasPriceLimitTest) {
 		returnSuccessHeader: true,
 	}
 
-	mgr := &SimpleTxManager{
-		cfg: Config{
-			ResubmissionTimeout:       time.Second,
-			ReceiptQueryInterval:      50 * time.Millisecond,
-			NumConfirmations:          1,
-			SafeAbortNonceTooLowCount: 3,
-			FeeLimitMultiplier:        5,
-			FeeLimitThreshold:         lt.thr,
-			Signer: func(ctx context.Context, from common.Address, tx *types.Transaction) (*types.Transaction, error) {
-				return tx, nil
-			},
-			From: common.Address{},
+	cfg := Config{
+		ReceiptQueryInterval:      50 * time.Millisecond,
+		NumConfirmations:          1,
+		SafeAbortNonceTooLowCount: 3,
+		Signer: func(ctx context.Context, from common.Address, tx *types.Transaction) (*types.Transaction, error) {
+			return tx, nil
 		},
+		From: common.Address{},
+	}
+	cfg.ResubmissionTimeout.Store(int64(time.Second))
+	cfg.FeeLimitMultiplier.Store(5)
+	cfg.FeeLimitThreshold.Store(lt.thr)
+	cfg.MinBlobTxFee.Store(defaultMinBlobTxFee)
+
+	mgr := &SimpleTxManager{
+		cfg:     &cfg,
 		name:    "TEST",
 		backend: &borkedBackend,
 		l:       testlog.Logger(t, log.LevelCrit),
@@ -1317,11 +1335,11 @@ func TestMinFees(t *testing.T) {
 		t.Run(tt.desc, func(t *testing.T) {
 			require := require.New(t)
 			conf := configWithNumConfs(1)
-			conf.MinBaseFee = tt.minBaseFee
-			conf.MinTipCap = tt.minTipCap
+			conf.MinBaseFee.Store(tt.minBaseFee)
+			conf.MinTipCap.Store(tt.minTipCap)
 			h := newTestHarnessWithConfig(t, conf)
 
-			tip, baseFee, _, err := h.mgr.suggestGasPriceCaps(context.TODO())
+			tip, baseFee, _, err := h.mgr.SuggestGasPriceCaps(context.TODO())
 			require.NoError(err)
 
 			if tt.expectMinBaseFee {
