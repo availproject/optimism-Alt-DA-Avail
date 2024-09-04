@@ -31,7 +31,6 @@ func NewDAClient(url string, verify bool, pc bool) *DAClient {
 
 // GetInput returns the input data for the given encoded commitment bytes.
 func (c *DAClient) GetInput(ctx context.Context, comm CommitmentData) ([]byte, error) {
-
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("%s/get/0x%x", c.url, comm.Encode()), nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create HTTP request: %w", err)
@@ -104,7 +103,7 @@ func (c *DAClient) setInputWithCommit(ctx context.Context, comm CommitmentData, 
 	return nil
 }
 
-// setInputs sets the input data and reads the respective DA generated commitment.
+// setInput sets the input data and reads the respective DA generated commitment.
 func (c *DAClient) setInput(ctx context.Context, img []byte) (CommitmentData, error) {
 	if len(img) == 0 {
 		return nil, ErrInvalidInput
@@ -112,6 +111,7 @@ func (c *DAClient) setInput(ctx context.Context, img []byte) (CommitmentData, er
 
 	body := bytes.NewReader(img)
 	url := fmt.Sprintf("%s/put/", c.url)
+
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, body)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create HTTP request: %w", err)
@@ -132,6 +132,7 @@ func (c *DAClient) setInput(ctx context.Context, img []byte) (CommitmentData, er
 	}
 
 	comm, err := DecodeCommitmentData(b)
+	println("comm inside da client", comm)
 	if err != nil {
 		return nil, err
 	}

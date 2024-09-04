@@ -5,7 +5,7 @@ import (
 
 	"github.com/urfave/cli/v2"
 
-	altda "github.com/ethereum-optimism/optimism/op-alt-da/cmd/avail/types"
+	altda "github.com/ethereum-optimism/optimism/op-alt-da"
 	oplog "github.com/ethereum-optimism/optimism/op-service/log"
 	"github.com/ethereum-optimism/optimism/op-service/opio"
 )
@@ -16,7 +16,6 @@ func StartDAServer(cliCtx *cli.Context) error {
 	}
 
 	cfg := ReadCLIConfig(cliCtx)
-
 	if err := cfg.Check(); err != nil {
 		return err
 	}
@@ -42,7 +41,7 @@ func StartDAServer(cliCtx *cli.Context) error {
 		store = s3
 	}
 
-	server := altda.NewDAServer(cliCtx.String(ListenAddrFlagName), cliCtx.Int(PortFlagName), adapters.KVStoreAdapter{KVStore: store}, l, cfg.UseGenericComm)
+	server := altda.NewDAServer(cliCtx.String(ListenAddrFlagName), cliCtx.Int(PortFlagName), store, l, cfg.UseGenericComm)
 
 	if err := server.Start(); err != nil {
 		return fmt.Errorf("failed to start the DA server")

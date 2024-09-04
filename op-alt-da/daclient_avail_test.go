@@ -1,7 +1,7 @@
 //go:build avail
 // +build avail
 
-package plasma
+package altda
 
 import (
 	"context"
@@ -11,18 +11,17 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ethereum-optimism/optimism/op-alt-da/cmd/adapters"
-	avail "github.com/ethereum-optimism/optimism/op-alt-da/cmd/avail/service"
+	availService "github.com/ethereum-optimism/optimism/op-alt-da/cmd/avail/service"
 	"github.com/ethereum-optimism/optimism/op-service/testlog"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/stretchr/testify/require"
 )
 
 const (
-	RPC     = "wss://turing-rpc.avail.so/rpc"                                          // RPC URL
-	SEED    = "tongue mail arrange member flag clip evolve frost summer bar only skin" // SEED PHRASE
-	APPID   = 27                                                                       // APPID
-	TIMEOUT = 100 * time.Second                                                        // Timeout
+	RPC     = ""                // RPC URL
+	SEED    = ""                // SEED PHRASE
+	APPID   = 0                 // APP ID                                                                       // APPID
+	TIMEOUT = 100 * time.Second // Timeout
 )
 
 func Check() error {
@@ -43,12 +42,12 @@ func TestAvailDAClientService(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	store := avail.NewAvailService(RPC, SEED, APPID, TIMEOUT)
+	store := availService.NewAvailService(RPC, SEED, APPID, TIMEOUT)
 	logger := testlog.Logger(t, log.LevelDebug)
 
 	ctx := context.Background()
 
-	server := NewDAServer("127.0.0.1", 0, adapters.DAServiceAdapter{DAService: store}, logger, true)
+	server := NewAvailDAServer("127.0.0.1", 0, store, logger, true)
 
 	require.NoError(t, server.Start())
 
@@ -67,6 +66,7 @@ func TestAvailDAClientService(t *testing.T) {
 	input := RandomData(rng, 2000)
 
 	comm, err := client.SetInput(ctx, input)
+	println("comm", comm)
 	require.NoError(t, err)
 
 	stored, err := client.GetInput(ctx, comm)
