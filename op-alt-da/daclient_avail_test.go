@@ -21,7 +21,7 @@ const (
 	RPC     = ""                // RPC URL
 	SEED    = ""                // SEED PHRASE
 	APPID   = 0                 // APP ID                                                                       // APPID
-	TIMEOUT = 100 * time.Second // Timeout
+	TIMEOUT = 100 * time.Second // TIMEOUT
 )
 
 func Check() error {
