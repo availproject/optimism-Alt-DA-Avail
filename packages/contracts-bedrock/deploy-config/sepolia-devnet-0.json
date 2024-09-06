@@ -65,7 +65,7 @@
   "eip1559Elasticity": 6,
   "eip1559Denominator": 250,
   "eip1559DenominatorCanyon": 250,
-  "systemConfigStartBlock": 4071248,
+  "systemConfigStartBlock": 0,
   "faultGameAbsolutePrestate": "0x0385c3f8ee78491001d92b90b07d0cf387b7b52ab9b83b4d87c994e92cf823ba",
   "faultGameMaxDepth": 73,
   "faultGameClockExtension": 3600,
@@ -82,5 +82,11 @@
   "useFaultProofs": true,
   "fundDevAccounts": true,
   "requiredProtocolVersion": "0x0000000000000000000000000000000000000005000000000000000000000000",
-  "recommendedProtocolVersion": "0x0000000000000000000000000000000000000005000000000000000000000000"
+  "recommendedProtocolVersion": "0x0000000000000000000000000000000000000005000000000000000000000000",
+  "useAltDA": true,
+  "daCommitmentType": "GenericCommitment",
+  "daChallengeWindow": 160,
+  "daResolveWindow": 160,
+  "daBondSize": 1000000,
+  "daResolverRefundPercentage": 0
 }
